@@ -5,3 +5,4 @@
 3. [seaborn学习笔记-数据集上的分布可视化](./03-Visualizing-the-distribution-of-a-dataset/03-Visualizing-the-distribution-of-a-dataset.md)
 4. [seaborn学习笔记-数线性关系可视化](./04-Visualizing-linear-relationships/04-Visualizing-linear-relationships.md)
 5. [seaborn学习笔记-结构化多格网绘图](./05-Building-structured-multi-plot-grids/05-Building-structured-multi-plot-grids.md)
+5. [seaborn学习笔记-图形样式调整](./06-Controlling-figure-aesthetics/06-Controlling-figure-aesthetics.md)
