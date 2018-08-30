@@ -17,7 +17,7 @@ TRAINING_STEPS = 30000  # 训练轮数
 MOVING_AVERAGE_DECAY = 0.99  # 滑动平均衰减率
 
 
-def forwardPropagation(input, weights1, biases1, weights2, biases2, avg_class=None):
+def inference(input, weights1, biases1, weights2, biases2, avg_class=None):
     '''
     前向传播。该函数定义了含有一个隐藏的网络，并且使用ReLU激活函数实现去线性化。通过参数avg_class控制是否使用滑动平均。
     :param input:
@@ -56,7 +56,7 @@ def train(mnist):
     biases2 = tf.Variable(tf.constant(0.1, shape=[OUTPUT_NODE]))
 
     # 计算在当前参数下网络前向传播的结果。这里不使用滑动平均
-    y_halt = forwardPropagation(x, weights1, biases1, weights2, biases2)
+    y_halt = inference(x, weights1, biases1, weights2, biases2)
 
     # 定义存储训练轮数的变量，并将其指定为不可训练的。在使用TensorFlow训练神经网络时，一般将代表轮数的变量指定为不可训练
     global_step = tf.Variable(0, trainable=False)
@@ -71,7 +71,7 @@ def train(mnist):
     # 计算使用了滑动平均之后的前向传播结果。滑动平均不会改变变量本身的取值，而是维护一个影子变量保存其滑动平均值
     # 当使用滑动平均值时需要明确调用average函数
 
-    average_y_halt = forwardPropagation(x, weights1, biases1, weights2, biases2, variable_averages)
+    average_y_halt = inference(x, weights1, biases1, weights2, biases2, variable_averages)
 
     # 定以损失函数为交叉熵.
     # tensorflow中提供了sparse_softmax_cross_entropy_with_logits函数计算交叉熵
