@@ -60,13 +60,16 @@ estimator = pipeline.Pipeline(steps = [
 )
 
 #%%
-kf = KFold(n_splits=15, random_state=42, shuffle=True)
+kf = KFold(n_splits=5, random_state=1234, shuffle=True)
 
-grid_search = GridSearchCV(estimator,param_grid={'model_fitting__alpha':np.logspace(-5,5,11)},scoring='neg_mean_squared_error',cv=kf) 
+grid_search = GridSearchCV(estimator,
+    param_grid={'model_fitting__alpha':np.logspace(-8,8,17),'model_fitting__max_iter',[500,1000,2000,3000]},
+    scoring='neg_mean_squared_error',cv=kf) 
 grid_search.fit(X_train,y_train)
 print("Best parameters:{}".format(grid_search.best_params_))
 print("Best best_score:{}".format(-grid_search.best_score_))
-
+#%%
+pd.DataFrame(grid_search.cv_results_).head(20)
 #%%
 y_train_predicted =  grid_search.best_estimator_.predict(X_train)
 print("RMSLE on train: ", np.sqrt(metrics.mean_squared_error(y_train_predicted, y_train)))
@@ -84,8 +87,7 @@ data_test.head()
 #%%
 X_test = data_test.drop(['datetime'], axis = 1)
 #%%
-y_test_predicted = grid_search.best_estimator_.predict(data_test)
-#%%
+y_test_predicted = grid_search.best_estimator_.predict(X_test)
 y_test_predicted = np.exp(y_test_predicted) - 1
 #%%
 submission = pd.DataFrame({
@@ -95,3 +97,5 @@ submission = pd.DataFrame({
 submission.head()
 #%%
 submission.to_csv('./kaggle/bike-rental-predict/input/bike_predictions.csv', index=False)
+
+#%%
