@@ -47,7 +47,7 @@ params={
     'objective':'regression_l2',
     'boosting':'gbdt',
     'metric':'root_mean_squared_error',
-    'max_depth':8,
+    'max_depth':5,
     'bagging_fraction':0.8,
     'bagging_freq':5, 
     'bagging_seed':1234,
@@ -57,25 +57,12 @@ params={
 ret = lgb.cv(params,dataset_train,num_boost_round=10000,nfold=5,stratified=False,shuffle=True,early_stopping_rounds=50,seed=1234)
 
 #%%
+print('num_boost_round = %s, best_iter = %s' %(len(ret['rmse-mean']),np.argmin(ret['rmse-mean'])))
+#%%
 lightgbm = lgb.train(params,dataset_train,num_boost_round=len(ret['rmse-mean']))
 
 #%%
-score = lightgbm.predict(X_train,np.argmin(ret))
-
-#%%
-print("RMSLE on train: ", np.sqrt(metrics.mean_squared_error(score, y_train)))
-#%% 使用earlystopping则迭代次数可以不作为超参数，而是设置一个较大值
-param_grid={'n_estimators':[50,100,200,300,400,500],
-            'learning_rate':np.logspace(-5,0,6),
-            'n_estimators'=10000}
-grid_search = GridSearchCV(lightgbm,param_grid=param_grid,scoring='neg_mean_squared_error',cv=kf) 
-grid_search.fit(X_train,y_train)
-print("Best parameters:{}".format(grid_search.best_params_))
-print("Best best_score:{}".format(-grid_search.best_score_))
-#%%
-pd.DataFrame(grid_search.cv_results_).head(20)
-#%%
-y_train_predicted =  lightgbm.predict(X_train)
+y_train_predicted = lightgbm.predict(X_train,np.argmin(ret))
 print("RMSLE on train: ", np.sqrt(metrics.mean_squared_error(y_train_predicted, y_train)))
 #%%
 data_test = pd.read_csv("./kaggle/bike-rental-predict/input/test.csv")
