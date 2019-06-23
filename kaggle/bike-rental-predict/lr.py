@@ -1,3 +1,7 @@
+"""
+线性回归
+"""
+
 #%%
 import numpy as np 
 import pandas as pd 
@@ -5,26 +9,15 @@ from sklearn.model_selection import cross_validate,GridSearchCV,KFold
 from sklearn import linear_model,metrics,pipeline, preprocessing
 import warnings
 warnings.filterwarnings("ignore")
-
 #%%
-data_train = pd.read_csv('./kaggle/bike-rental-predict/input/train.csv')
+user_cols=['season', 'holiday', 'workingday', 'weather','temp','atemp','humidity','windspeed','month','hour','dayofweek']
+data_train = pd.read_csv('./kaggle/bike-rental-predict/input/train_feature.csv')[[*user_cols,'y']]
 data_train.shape
-
 #%%
 data_train.head(3)
 #%%
-data_train.isnull().values.any()
-#%%
-data_train.datetime = data_train.datetime.apply(pd.to_datetime)
-data_train['month'] = data_train.datetime.dt.month
-data_train['hour'] = data_train.datetime.dt.hour
-data_train['day'] = data_train.datetime.dt.day
-data_train['dayofweek'] = data_train.datetime.dt.dayofweek
-data_train['y'] = np.log(data_train['count'] + 1)
-data_train.head()
-#%%
 y_train = data_train['y'].values
-X_train = data_train[['season', 'holiday', 'workingday', 'weather','temp','atemp','humidity','windspeed','month','hour','dayofweek']]
+X_train = data_train[user_cols]
 #%%
 binary_data_columns = ['holiday', 'workingday']
 binary_data_indices = np.array([(column in binary_data_columns) for column in X_train.columns], dtype = bool)
