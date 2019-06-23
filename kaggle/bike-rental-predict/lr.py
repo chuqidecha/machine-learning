@@ -11,7 +11,7 @@ import warnings
 warnings.filterwarnings("ignore")
 #%%
 use_cols=['season', 'holiday', 'workingday', 'weather','temp','atemp','humidity','windspeed','month','hour','dayofweek']
-data_train = pd.read_csv('./kaggle/bike-rental-predict/input/train_feature.csv')[[*use_cols,'y']]
+data_train = pd.read_csv('./kaggle/bike-rental-predict/input/train_feature.csv')
 data_train.shape
 #%%
 data_train.head(3)

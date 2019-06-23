@@ -1,55 +1,74 @@
 #%%
 import numpy as np 
-import pandas as pd 
-from sklearn.model_selection import GridSearchCV,KFold
-from sklearn import metrics
+import pandas as pd
+
+from sklearn.model_selection import cross_validate,KFold
+from sklearn.metrics import make_scorer,mean_squared_error 
+
 import lightgbm as lgb
+
+from hyperopt import hp, tpe, space_eval,STATUS_OK
+from hyperopt.fmin import fmin
+
 import warnings
 warnings.filterwarnings("ignore")
 #%%
-data_train = pd.read_csv('./kaggle/bike-rental-predict/input/train.csv')
+use_cols=['season', 'holiday', 'workingday', 'weather','temp','atemp','humidity','windspeed','month','hour','dayofweek']
+data_train = pd.read_csv('./kaggle/bike-rental-predict/input/train_feature.csv')
 data_train.shape
-
 #%%
 data_train.head(3)
 #%%
-data_train.datetime = data_train.datetime.apply(pd.to_datetime)
-data_train['month'] = data_train.datetime.dt.month
-data_train['hour'] = data_train.datetime.dt.hour
-data_train['dayofweek'] = data_train.datetime.dt.dayofweek
-data_train['y'] = np.log(data_train['count'] + 1)
-data_train.head()
+y_train = data_train['y'].values
+X_train = data_train[use_cols]
 #%%
-y_train = data_train['y']
-X_train = data_train[['season', 'holiday', 'workingday', 'weather','month','hour','dayofweek','temp','atemp','humidity','windspeed']]
-print(list(zip(X_train.columns,X_train.dtypes)))
+def objective_fun(dataset_train, model_params={}, fit_params={}):
+    def lgbm(params):
+        model_params_copy = model_params.copy()
+        model_params_copy.update(params)
+        print(model_params_copy)
+        ret = lgb.cv(model_params_copy,dataset_train,**fit_params)
+        print(ret)
+        best_rounds = np.argmin(ret['rsme-mean'])
+        return {
+            'loss': ret['rsme-mean'][best_rounds],
+            'status': STATUS_OK,
+            'loss_variance':ret['rsme-std'][best_rounds],
+            'best_rounds': best_rounds
+        }
+    return lgbm
 
 #%%
-X_train.head(3)
-#%%
-def objective_func(train_set,num_boost_round=10000,nfold=5,stratified=False,shuffle=True,early_stopping_rounds=50,seed=1234):
-    def objective(params):
-        ret = lgb.cv(params,dataset_train,num_boost_round=10000,nfold=5,stratified=False,shuffle=True,early_stopping_rounds=50,seed=1234)
-        return ret['rmse-mean'][-1]
-    return objective
-
-space={
+model_params = {
     'objective':'regression_l2',
     'boosting':'gbdt',
     'metric':'root_mean_squared_error',
-    'max_depth':hp.choice('max_depth', np.linspace(4,10,7).astype(np.int)),
-    'num_leaves': hp.choice('num_leaves', np.linspace(32,128,49).astype(np.int)),
     'bagging_fraction':0.8,
     'bagging_freq':5, 
     'bagging_seed':1234,
-    'categorical_feature':[0,1,2,3,4,5,6],
     'feature_fraction':0.8,
+    'categorical_feature':[0,1,2,3,4,5,6],
+    'random_state':1234
+}
+
+
+fit_params = {
+    'num_boost_round':1000,
+    'nfold':5,
+    'stratified':False,
+    'shuffle':True,
+    'early_stopping_rounds':50,
+    'seed':1234
+}
+
+space={
+    'max_depth': hp.choice('max_depth', np.linspace(4,10,7).astype(np.int)),
+    'num_leaves': hp.choice('num_leaves', np.linspace(32,128,49).astype(np.int)),
     'learning_rate': hp.uniform('learning_rate',0,0.3),
-    'random_state':1234,
-    'lambda_l2':hp.uniform('lambda_l2',0,20)
+    'lambda_l2': hp.uniform('lambda_l2',0,20)
 }
 dataset_train = lgb.Dataset(X_train, y_train)
-best = fmin(fn=objective_func(dataset_train,num_boost_round=10000,nfold=5,stratified=False,shuffle=True,early_stopping_rounds=50,seed=1234),
+best = fmin(fn=objective_fun(dataset_train,model_params,fit_params),
             space=space,
             algo=tpe.suggest,
             max_evals=300)
