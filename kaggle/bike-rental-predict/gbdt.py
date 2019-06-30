@@ -2,8 +2,8 @@
 import numpy as np
 import pandas as pd
 
-from sklearn.model_selection import cross_validate, KFold, train_test_split
-from sklearn.metrics import make_scorer, mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 
 import lightgbm as lgb
 
