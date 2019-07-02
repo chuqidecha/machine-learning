@@ -184,7 +184,7 @@ test.loc[test['KitchenQual'].isnull() & test['KitchenAbvGr'].gt(0), [
     'KitchenQual', 'KitchenAbvGr']].head()
 # %%
 # KitchenQual有一个NA，用众数填充
-test[test['KitchenQual'].isnull()] = train['KitchenQual'].mode()[0]
+test.loc[test['KitchenQual'].isnull(),'KitchenQual'] = train['KitchenQual'].mode()[0]
 
 # %%
 # MSZoning、Utilities、Electrical邻近社区基本相同，用邻近社区众数填充
@@ -197,28 +197,26 @@ mode_fill_dict = {
 
 # %%
 for column, fill_dict in mode_fill_dict.items():
-    test.loc[test[column].isnull(), column] = test.loc[test[column].isnull(),
-                                                       'Neighborhood'].apply(lambda x: fill_dict[x])
-    train.loc[train[column].isnull(), column] = train.loc[train[column].isnull(
-    ), 'Neighborhood'].apply(lambda x: fill_dict[x])
+    test.loc[test[column].isnull(), column] = test.loc[
+        test[column].isnull(), 'Neighborhood'].apply(lambda x: fill_dict[x])
+    train.loc[train[column].isnull(), column] = train.loc[
+        train[column].isnull(), 'Neighborhood'].apply(lambda x: fill_dict[x])
 
 # %% LotFrontage用邻近社区中位数填充
 lot_frontage = train.groupby("Neighborhood")[
     "LotFrontage"].apply(lambda x: x.median())
 
-train.loc[train['LotFrontage'].isnull(), 'LotFrontage'] = train.loc[train['LotFrontage'].isnull(),
-                                                                    'Neighborhood'].apply(lambda x: lot_frontage[x])
-test.loc[test['LotFrontage'].isnull(), 'LotFrontage'] = test.loc[test['LotFrontage'].isnull(),
-                                                                 'Neighborhood'].apply(lambda x: lot_frontage[x])
+train.loc[train['LotFrontage'].isnull(), 'LotFrontage'] = train.loc[
+    train['LotFrontage'].isnull(), 'Neighborhood'].apply(lambda x: lot_frontage[x])
+test.loc[test['LotFrontage'].isnull(), 'LotFrontage'] = test.loc[
+    test['LotFrontage'].isnull(), 'Neighborhood'].apply(lambda x: lot_frontage[x])
 
 # %%
 # Functional、Exterior2nd、Exterior1stz用众数填充
 test.loc[test['SaleType'].isnull(), 'SaleType'] = train['SaleType'].mode()[0]
 test.loc[test['Functional'].isnull(), 'Functional'] = train['Functional'].mode()[0]
-test.loc[test['Exterior2nd'].isnull(
-), 'Exterior2nd'] = train['Exterior2nd'].mode()[0]
-test.loc[test['Exterior1st'].isnull(
-), 'Exterior1st'] = train['Exterior1st'].mode()[0]
+test.loc[test['Exterior2nd'].isnull(), 'Exterior2nd'] = train['Exterior2nd'].mode()[0]
+test.loc[test['Exterior1st'].isnull(), 'Exterior1st'] = train['Exterior1st'].mode()[0]
 
 # %%
 na_train = train.isna().sum()
