@@ -63,7 +63,8 @@ plt.show()
 # 虽然是数值但实际为类别的特征转为str
 cat_numeric_cols = [
     'MSSubClass', 'OverallQual', 'OverallCond',
-    'YearBuilt', 'YearRemodAdd', 'MoSold', 'YrSold'
+    'YearBuilt', 'YearRemodAdd', 'MoSold',
+    'YrSold', 'GarageYrBlt'
 ]
 train[cat_numeric_cols] = train[cat_numeric_cols].astype(str)
 test[cat_numeric_cols] = test[cat_numeric_cols].astype(str)
