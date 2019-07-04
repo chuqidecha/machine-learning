@@ -55,7 +55,7 @@ print(na_test[na_test.gt(0)].sort_values(ascending=False).to_dict())
 # %%
 # 车库相关特征处理
 garage_columns = [
-    'GarageType', 'GarageYrBlt', 'GarageFinish', 'GarageQual', 'GarageCond'
+    'GarageType',  'GarageFinish', 'GarageQual', 'GarageCond'
 ]
 # garage_columns should be NA when no garage
 pd.DataFrame([train[garage_columns].isna().sum(),
@@ -85,7 +85,6 @@ test.iloc[[666, 1116]][[*garage_columns, 'GarageCars', 'GarageArea']].head(5)
 # GarageQual、GarageCond需要用GarageType相同的众数填充
 garage_type_group = train.groupby('GarageType')
 garage_fill_dict = {
-    'GarageYrBlt': garage_type_group['GarageYrBlt'].agg(lambda x: x.mode()[0]),
     'GarageFinish': garage_type_group['GarageFinish'].agg(lambda x: x.mode()[0]),
     'GarageQual': garage_type_group['GarageQual'].agg(lambda x: x.mode()[0]),
     'GarageCond': garage_type_group['GarageCond'].agg(lambda x: x.mode()[0]),
@@ -98,6 +97,15 @@ for column, fill_dict in garage_fill_dict.items():
     index = (test['GarageType'].notna() & test[column].isna())
     test.loc[index, column] = test.loc[index, 'GarageType'].apply(
         lambda x: fill_dict[x])
+
+# %%
+# GarageYrBlt如果没有用房子建造的时间填充
+train_na_GarageYrBlt = train['GarageYrBlt'].isna()
+train.loc[train_na_GarageYrBlt,
+          'GarageYrBlt'] = train.loc[train_na_GarageYrBlt, 'YearBuilt']
+test_na_GarageYrBlt = test['GarageYrBlt'].isna()
+test.loc[test_na_GarageYrBlt,
+         'GarageYrBlt'] = test.loc[test_na_GarageYrBlt, 'YearBuilt']
 # %%
 train[garage_columns] = train[garage_columns].fillna(value='None')
 test[garage_columns] = test[garage_columns].fillna(value='None')
@@ -184,7 +192,8 @@ test.loc[test['KitchenQual'].isnull() & test['KitchenAbvGr'].gt(0), [
     'KitchenQual', 'KitchenAbvGr']].head()
 # %%
 # KitchenQual有一个NA，用众数填充
-test.loc[test['KitchenQual'].isnull(),'KitchenQual'] = train['KitchenQual'].mode()[0]
+test.loc[test['KitchenQual'].isnull(
+), 'KitchenQual'] = train['KitchenQual'].mode()[0]
 
 # %%
 # MSZoning、Utilities、Electrical邻近社区基本相同，用邻近社区众数填充
@@ -215,8 +224,10 @@ test.loc[test['LotFrontage'].isnull(), 'LotFrontage'] = test.loc[
 # Functional、Exterior2nd、Exterior1stz用众数填充
 test.loc[test['SaleType'].isnull(), 'SaleType'] = train['SaleType'].mode()[0]
 test.loc[test['Functional'].isnull(), 'Functional'] = train['Functional'].mode()[0]
-test.loc[test['Exterior2nd'].isnull(), 'Exterior2nd'] = train['Exterior2nd'].mode()[0]
-test.loc[test['Exterior1st'].isnull(), 'Exterior1st'] = train['Exterior1st'].mode()[0]
+test.loc[test['Exterior2nd'].isnull(
+), 'Exterior2nd'] = train['Exterior2nd'].mode()[0]
+test.loc[test['Exterior1st'].isnull(
+), 'Exterior1st'] = train['Exterior1st'].mode()[0]
 
 # %%
 na_train = train.isna().sum()
