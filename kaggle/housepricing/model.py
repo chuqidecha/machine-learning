@@ -26,11 +26,33 @@ train = pd.read_csv('./kaggle/housepricing/input/train_feat.csv')
 test = pd.read_csv('./kaggle/housepricing/input/test_feat.csv')
 
 # %%
+number_sales = train.groupby('Neighborhood')[['Id']].count().rename(
+    columns={'Id':'NumberSales'}).reset_index()
+train = train.merge(number_sales,how='left',on='Neighborhood')
+test = test.merge(number_sales,how='left',on='Neighborhood')
+
+# %%
+mean_price = train.groupby('Neighborhood')[['SalePrice']].mean().rename(
+    columns={'SalePrice':'MeanPrice'}).reset_index()
+train = train.merge(mean_price,how='left',on='Neighborhood')
+test = test.merge(mean_price,how='left',on='Neighborhood')
+
+# %%
+train.head()
+# %%
 train.drop(columns=['Id'], inplace=True)
 
 # %%
 test_id = test['Id']
 test = test.drop(columns=['Id'])
+
+# %%
+train['Years'] = train['YrSold'] - train['YearBuilt']
+test['Years'] = test['YrSold'] - test['YearBuilt']
+
+#%%
+y_train_encode = train['SalePrice']
+train.drop(columns=['SalePrice'],inplace=True)
 # %%
 dtypes = test.dtypes
 numeric_categorical_cols = [
@@ -47,10 +69,18 @@ categorical_oneHotEncoder = OneHotEncoder(handle_unknown='ignore')
 numeric_categorical_oneHotEncoder = OneHotEncoder(handle_unknown='ignore')
 
 # %%
-total_5_percent = train.shape[0] * 0.01
+categorical_dict = {}
+freq_threshold = train.shape[0] * 0.01
 for col in [*numeric_categorical_cols, *categorical_cols]:
     value_counts = train[col].value_counts()
-    print(col, value_counts.index.values[value_counts < total_5_percent])
+    col_values = value_counts.index.values[value_counts > freq_threshold]
+    categorical_dict[col] = {value: code for code,
+                             value in enumerate(col_values, 1)}
+    train[col] = train[col].apply(
+        lambda x: categorical_dict[col][x] if x in col_values else 0)
+
+    test[col] = test[col].apply(
+        lambda x: categorical_dict[col][x] if x in col_values else 0)
 
 # %%
 preprocessor = ColumnTransformer(
@@ -64,7 +94,6 @@ preprocessor.fit(train)
 
 # %%
 X_train_encode = preprocessor.transform(train)
-y_train_encode = train['SalePrice']
 X_test = preprocessor.transform(test)
 
 # %%
@@ -76,23 +105,31 @@ lr.fit(X_train, y_train)
 print(np.sqrt(mean_squared_error(y_val, lr.predict(X_val))))
 
 # %% gbdt
-# dataset_train = lgb.Dataset(X_train, y_train)
-# dataset_test = lgb.Dataset(X_val, y_val)
-# params = {
-#     'objective': 'regression_l2',
-#     'boosting': 'gbdt',
-#     'metric': 'root_mean_squared_error',
-#     'bagging_fraction': 0.8,
-#     'bagging_freq': 5,
-#     'bagging_seed': 1234,
-#     'feature_fraction': 0.8,
-#     'categorical_feature': 'name:' + ",".join(categorical_cols.values),
-#     'random_state': 1234
-# }
+X_train, X_val, y_train, y_val = train_test_split(
+    train, y_train_encode, test_size=0.2, random_state=42)
+# %%
+feature_name = test.columns.tolist()
+dataset_train = lgb.Dataset(pd.DataFrame(
+    data=X_train, columns=feature_name), y_train)
+dataset_test = lgb.Dataset(pd.DataFrame(
+    data=X_val, columns=feature_name), y_val)
+categorical_cols_index = [index for index, col in enumerate(feature_name)
+                          if index in [*numeric_categorical_cols, *categorical_cols]]
+params = {
+    'objective': 'regression_l2',
+    'boosting': 'gbdt',
+    'metric': 'root_mean_squared_error',
+    'bagging_fraction': 0.8,
+    'bagging_freq': 5,
+    'bagging_seed': 1234,
+    'feature_fraction': 0.8,
+    'categorical_feature': categorical_cols_index,
+    'random_state': 1234
+}
 
-# lightgbm = lgb.train(params, dataset_train, num_boost_round=1000,
-#                      valid_sets=dataset_test, early_stopping_rounds=50)
-# print(mean_squared_error(y_val, lightgbm.predict(X_val)))
+lightgbm = lgb.train(params, dataset_train, num_boost_round=1000,
+                     valid_sets=dataset_test, early_stopping_rounds=50)
+print(mean_squared_error(y_val, lightgbm.predict(X_val)))
 # %%
 y_test_ = np.expm1(lr.predict(X_test))
 submission = pd.DataFrame(
@@ -102,6 +139,6 @@ submission = pd.DataFrame(
     }
 )
 # %%
-submission.to_csv('./kaggle/housepricing/input/ridge3.csv', index=False)
+submission.to_csv('./kaggle/housepricing/input/lightgbm.csv', index=False)
 
 # %%
