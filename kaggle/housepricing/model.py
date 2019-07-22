@@ -102,8 +102,15 @@ X_train, X_val, y_train, y_val = train_test_split(
 # %%
 lr = Ridge(max_iter=2000)
 lr.fit(X_train, y_train)
+print('------lr------')
 print(np.sqrt(mean_squared_error(y_val, lr.predict(X_val))))
 
+# %%
+from fastFM import als
+fm = als.FMRegression(n_iter=1000, init_stdev=0.1, l2_reg_w=0.1, l2_reg_V=0.5)
+fm.fit(X_train, y_train)
+print('------fm------')
+print(np.sqrt(mean_squared_error(y_val, fm.predict(X_val))))
 # %% gbdt
 X_train, X_val, y_train, y_val = train_test_split(
     train, y_train_encode, test_size=0.2, random_state=42)
