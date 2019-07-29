@@ -27,15 +27,15 @@ test = pd.read_csv('./kaggle/housepricing/input/test_feat.csv')
 
 # %%
 number_sales = train.groupby('Neighborhood')[['Id']].count().rename(
-    columns={'Id':'NumberSales'}).reset_index()
-train = train.merge(number_sales,how='left',on='Neighborhood')
-test = test.merge(number_sales,how='left',on='Neighborhood')
+    columns={'Id': 'NumberSales'}).reset_index()
+train = train.merge(number_sales, how='left', on='Neighborhood')
+test = test.merge(number_sales, how='left', on='Neighborhood')
 
 # %%
 mean_price = train.groupby('Neighborhood')[['SalePrice']].mean().rename(
-    columns={'SalePrice':'MeanPrice'}).reset_index()
-train = train.merge(mean_price,how='left',on='Neighborhood')
-test = test.merge(mean_price,how='left',on='Neighborhood')
+    columns={'SalePrice': 'MeanPrice'}).reset_index()
+train = train.merge(mean_price, how='left', on='Neighborhood')
+test = test.merge(mean_price, how='left', on='Neighborhood')
 
 # %%
 train.head()
@@ -50,9 +50,9 @@ test = test.drop(columns=['Id'])
 train['Years'] = train['YrSold'] - train['YearBuilt']
 test['Years'] = test['YrSold'] - test['YearBuilt']
 
-#%%
+# %%
 y_train_encode = train['SalePrice']
-train.drop(columns=['SalePrice'],inplace=True)
+train.drop(columns=['SalePrice'], inplace=True)
 # %%
 dtypes = test.dtypes
 numeric_categorical_cols = [
@@ -61,7 +61,7 @@ numeric_categorical_cols = [
 ]
 numeric_cols = [col for col in dtypes[dtypes != "object"].index.values
                 if col not in numeric_categorical_cols]
-numeric_KBinsDiscretizer = KBinsDiscretizer(n_bins=10)
+numeric_KBinsDiscretizer = KBinsDiscretizer(n_bins=10, encode='onehot')
 
 # %%
 categorical_cols = test.dtypes[test.dtypes == "object"].index
@@ -104,34 +104,39 @@ lr = Ridge(max_iter=2000)
 lr.fit(X_train, y_train)
 print(np.sqrt(mean_squared_error(y_val, lr.predict(X_val))))
 
+# %%
+import fastFM
+fm = als.FMRegression(n_iter=1000, init_stdev=0.1, l2_reg_w=0.1, l2_reg_V=0.5)
+fm.fit(X_train, y_train)
+print(np.sqrt(mean_squared_error(y_val, lr.predict(X_val))))
 # %% gbdt
-X_train, X_val, y_train, y_val = train_test_split(
-    train, y_train_encode, test_size=0.2, random_state=42)
-# %%
-feature_name = test.columns.tolist()
-dataset_train = lgb.Dataset(pd.DataFrame(
-    data=X_train, columns=feature_name), y_train)
-dataset_test = lgb.Dataset(pd.DataFrame(
-    data=X_val, columns=feature_name), y_val)
-categorical_cols_index = [index for index, col in enumerate(feature_name)
-                          if index in [*numeric_categorical_cols, *categorical_cols]]
-params = {
-    'objective': 'regression_l2',
-    'boosting': 'gbdt',
-    'metric': 'root_mean_squared_error',
-    'bagging_fraction': 0.8,
-    'bagging_freq': 5,
-    'bagging_seed': 1234,
-    'feature_fraction': 0.8,
-    'categorical_feature': categorical_cols_index,
-    'random_state': 1234
-}
+# X_train, X_val, y_train, y_val = train_test_split(
+#     train, y_train_encode, test_size=0.2, random_state=42)
+# # %%
+# feature_name = test.columns.tolist()
+# dataset_train = lgb.Dataset(pd.DataFrame(
+#     data=X_train, columns=feature_name), y_train)
+# dataset_test = lgb.Dataset(pd.DataFrame(
+#     data=X_val, columns=feature_name), y_val)
+# categorical_cols_index = [index for index, col in enumerate(feature_name)
+#                           if index in [*numeric_categorical_cols, *categorical_cols]]
+# params = {
+#     'objective': 'regression_l2',
+#     'boosting': 'gbdt',
+#     'metric': 'root_mean_squared_error',
+#     'bagging_fraction': 0.8,
+#     'bagging_freq': 5,
+#     'bagging_seed': 1234,
+#     'feature_fraction': 0.8,
+#     'categorical_feature': categorical_cols_index,
+#     'random_state': 1234
+# }
 
-lightgbm = lgb.train(params, dataset_train, num_boost_round=1000,
-                     valid_sets=dataset_test, early_stopping_rounds=50)
-print(mean_squared_error(y_val, lightgbm.predict(X_val)))
+# lightgbm = lgb.train(params, dataset_train, num_boost_round=1000,
+#                      valid_sets=dataset_test, early_stopping_rounds=50)
+# print(mean_squared_error(y_val, lightgbm.predict(X_val)))
 # %%
-y_test_ = np.expm1(lr.predict(X_test))
+y_test_ = np.expm1(fm.predict(X_test))
 submission = pd.DataFrame(
     {
         "Id": test_id,
